@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# Copyright (c) 2018,2019 Abacus Technologies, Inc.
+# Copyright (c) 2018,2019 Fumiyuki Shimizu
+# MIT License: https://opensource.org/licenses/mit-license.php
+#
+# ./predict {test_list_file|images_directory(non-recursive, since darknet's output is flat.)} [results_dir]
+
+. ./config
+
+gen_results () {
+  local IN IN_LIST OUT_DIR TMP1 TMP2
+  IN="$1"
+  OUT_DIR="$2"
+
+  TMP1=$(mktempf)
+  TMP2=$(mktempf)
+
+  if [ -d "$IN" ]; then
+    find -L "$IN" -maxdepth 1 -type f | sort >"$TMP1"
+    IN_LIST="$TMP1"
+  else
+    IN_LIST="$IN"
+  fi
+
+  sed -E -e '/^[[:space:]]*(valid|results)[[:space:]]*=/d' "$DATA" >"$TMP2"
+  echo ''                 >>"$TMP2"
+  echo "valid=$IN_LIST"   >>"$TMP2"
+  echo "results=$OUT_DIR" >>"$TMP2"
+
+  echo '----------'
+  cat "$TMP2"
+  echo '----------'
+  echo 'Validating '$(wc -l <"$TMP1")'files...'
+  echo darknet detector valid "$TMP2" "$CFG" "$PRETRAINED 2>$OUT_DIR/val.err"
+       darknet detector valid "$TMP2" "$CFG" "$PRETRAINED" 2>"$OUT_DIR/val.err" | tr '\n' ','
+  rm -f "$TMP1" "$TMP2"
+}
+
+IN=${1:-'images'}
+OUT=${2:-"$RESULTS_DIR"}
+gen_results "$IN" "$OUT"
+
+rc=0
+
+# end of file

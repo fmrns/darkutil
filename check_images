@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# Copyright (c) 2018,2019 Fumiyuki Shimizu
+# MIT License: https://opensource.org/licenses/mit-license.php
+
+PATH='/bin:/usr/bin'
+
+. ./common
+
+norm_dots () {
+  while read -r f; do
+    ext=$(echo "$f" | sed -E -e 's/^.*(\.[^.]+)$/\1/')
+    stem=$(basename "$f" "$ext" | tr . _)
+    dir=$(dirname "$f")
+    echo "mv -v '$f' '$dir/$stem$ext'"
+  done
+}
+
+basenames () {
+  sed -E -e 's@\.[^./]+$@@'
+}
+
+nosuffix () {
+  egrep -E -e '(^|/)[^./]+$'
+}
+
+TMP1=$(mktempf)
+
+echo "Searching files without extention on $1..."
+find -L "$1" -type f -print | nosuffix >"$TMP1"
+[ -s "$TMP1" ] && { echo '***'; cat "$TMP1"; echo '*** Files without extension found. They may cause potential problems.'; exit; }
+
+echo "Searching files with dots on $1..."
+find -L "$1" -type f -name '*.*.*' -print | norm_dots >"$TMP1"
+if [ -s "$TMP1" ]; then
+  rm -f setup.rename
+  cat "$TMP1" >setup.rename
+  echo '*** Files with multiple dots found. darknet cannot handle them. Created setup.rename may help you.'
+  exit
+fi
+
+echo "Searching collision of basenames on $1..."
+find -L "$1" -type f -print | basenames | sort | uniq -d >"$TMP1"
+[ -s "$TMP1" ] && { echo '***'; cat "$TMP1"; echo '*** Collision of basenames found. darknet cannot handle them.'; exit; }
+
+rm -f "$TMP1"
+rc=0
+
+# end of file

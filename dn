@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Copyright (c) 2018,2019 Abacus Technologies, Inc.
+# Copyright (c) 2018,2019 Fumiyuki Shimizu
+# MIT License: https://opensource.org/licenses/mit-license.php
+
+PATH='/bin:/usr/bin'
+
+. ./config
+
+mkdir -p "$BACKUP_DIR" "$RESULTS_DIR"
+[ -r anchors.txt ] || dark_anchors "$DATA" "$CFG"
+
+{ darknet _nohup _time detector train "$DATA" "$CFG" "$PRETRAINED" >>"$BACKUP_DIR"/train.out 2>>"$BACKUP_DIR"/train.err; make_partial; } &
+echo "$!" >backup/train.pid
+echo darknet           detector train "$DATA" "$CFG" "$PRETRAINED" ">>$BACKUP_DIR/train.out 2>>$BACKUP_DIR/train.err"
+
+rc=0
+
+# end of file

@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# Copyright (c) 2018,2019 Abacus Technologies, Inc.
+# Copyright (c) 2018,2019 Fumiyuki Shimizu
+# MIT License: https://opensource.org/licenses/mit-license.php
+
+. ./common
+
+GPUS='0'
+NAME='yolov3-spp-ilsvrc'
+CFG="cfg/$NAME.cfg"
+DATA='cfg/ilsvrc.data'
+BACKUP_DIR=$(sed -n -E -e 's/^[[:space:]]*backup[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*$/\1/p' "$CFG" | tail -n 1)
+: ${BACKUP_DIR:='backup'}
+RESULTS_DIR=$(sed -n -E -e 's/^[[:space:]]*results[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*$/\1/p' "$CFG" | tail -n 1)
+: ${RESULTS_DIR:='results'}
+
+PRETRAINED=$(search_pretrained_spp_weights "$CFG" "$BACKUP_DIR/$NAME")
+#PRETRAINED=$(search_pretrained_spp_weights "$CFG" "$BACKUP_DIR/$NAME" \
+#  "$HOME/SynologyDrive/repo/kaggle/ilsvrc/init-yolo-ilsvrc/backup/yolov3-spp-ilsvrc.backup")
+#PRETRAINED=$(search_pretrained_weights "$CFG" "$BACKUP_DIR/$NAME" \
+#  "$HOME/SynologyDrive/repo/kaggle/ilsvrc/init-yolo-ilsvrc/backup/yolov3-ilsvrc.backup")
+
+# end of file

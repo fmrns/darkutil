@@ -1,0 +1,166 @@
+#!/bin/sh
+#
+# Copyright (c) 2018,2019 Abacus Technologies, Inc.
+# Copyright (c) 2018,2019 Fumiyuki Shimizu
+# MIT License: https://opensource.org/licenses/mit-license.php
+
+PATH='/bin:/usr/bin:/sbin:/usr/sbin'
+DARKNET=${DARKNET:-'/opt/darknet/darknet'}
+DARKNET_ALEXAB=${DARKNET_ALEXAB:-'/opt/darknet.alexab/darknet'}
+COCO_WEIGHTS='/data/huge/darknet/COCO/yolov3.weights'
+COCO_SPP_WEIGHTS='/data/huge/darknet/COCO/yolov3-spp.weights'
+
+rc=1
+BN=$(basename "$0")
+TMPD=$(mktemp -d /tmp/."$BN".XXXXXXXXXXX)
+[ -d "$TMPD" ] || { echo 'Cannot create temporary directory.'; exit $rc; }
+[ -w "$TMPD" ] || { echo 'Cannot write to $TMPD.'; exit $rc; }
+cleanup () {
+  rm -rf "$TMPD"
+  exit $rc
+}
+trap 'cleanup' EXIT TERM
+
+mktempf () {
+  local f
+  f=$(mktemp "$TMPD/.$BN.XXXXXXXXXX")
+  [ -n "$f" -a -w "$f" ] || { echo 'Cannot create temporary file.'; exit $rc; }
+  echo -n "$f"
+}
+
+darknet () {
+  [ '_nohup' = "$1" ] && { shift; PREFIX="$PREFIX nohup"; }
+  [ '_time'  = "$1" ] && { shift; PREFIX="$PREFIX time";  }
+  if [ -z "$GPUS" ]; then
+    $PREFIX "$DARKNET" "$@"
+  else
+    $PREFIX "$DARKNET" "$@" -gpus "$GPUS"
+  fi
+}
+
+darknet_alexab () {
+  [ '_nohup' = "$1" ] && { shift; PREFIX="$PREFIX nohup"; }
+  [ '_time'  = "$1" ] && { shift; PREFIX="$PREFIX time";  }
+  if [ -z "$GPUS" ]; then
+    $PREFIX "$DARKNET_ALEXAB" "$@"
+  else
+    $PREFIX "$DARKNET_ALEXAB" "$@" -gpus "$GPUS"
+  fi
+}
+
+dark_partial () {
+  local CFG WEIGHTS OUTPUT MAX_REGION
+  CFG="$1"
+  WEIGHTS="$2"
+  OUTPUT="$3"
+  MAX_REGION="$4"
+  if [ -s "$OUTPUT" ] && [ "$OUTPUT" -nt "$WEIGHTS" ]; then
+    :
+  else
+    darknet partial "$CFG" "$WEIGHTS" "$OUTPUT" "$MAX_REGION"
+  fi
+  [ -s "$OUTPUT" ] || { echo "Cannot create $OUTPUT."; exit; }
+}
+
+dark_anchors () {
+  local DATA CFG WIDTH HEIGHT TRAIN ANCHORS
+  DATA="$1"
+  CFG="$2"
+  WIDTH=$(sed  -n -E -e 's/^[[:space:]]*width[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*$/\1/p'  "$CFG")
+  HEIGHT=$(sed -n -E -e 's/^[[:space:]]*height[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*$/\1/p' "$CFG")
+  TRAIN=$(sed  -n -E -e 's/^[[:space:]]*train[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*$/\1/p'  "$DATA")
+  TMP1=$(mktempf)
+  TMP2=$(mktempf)
+  sort "$TRAIN" >"$TMP1"
+  sed -E -e 's@^[[:space:]]*(train[[:space:]]*=).*$@\1'"$TMP1"'@' "$DATA" >"$TMP2"
+  echo 'Press enter twice.'
+  darknet_alexab detector calc_anchors "$TMP2" -num_of_clusters 9 -width "$WIDTH" -height "$HEIGHT" -show
+  ANCHORS=$(cat anchors.txt)
+  sed -E -e 's/^[[:space:]]*((anchors[[:space:]]*=).*)$/#\1\
+\2'"$ANCHORS/" "$CFG" >"$CFG".recommended
+  sed -E -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$CFG"             >"$TMP1"
+  sed -E -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$CFG".recommended >"$TMP2"
+  diff -auw "$TMP1" "$TMP2" || { echo '**********'; echo "Created $CFG.recommended. Exitting..."; echo '**********'; exit; }
+  rm -f "$TMP1" "$TMP2"
+}
+
+dark_weights () {
+  [ -s "$COCO_WEIGHTS" ] ||
+    wget --output-document="$COCO_WEIGHTS" 'https://pjreddie.com/media/files/yolov3.weights' || rm -fv "$COCO_WEIGHTS"
+  [ -s "$COCO_WEIGHTS" ] || { echo "Cannot get COCO_WEIGHTS."; exit; }
+  echo -n "$COCO_WEIGHTS"
+}
+
+dark_spp_weights () {
+  [ -s "$COCO_SPP_WEIGHTS" ] ||
+    wget --output-document="$COCO_SPP_WEIGHTS" 'https://pjreddie.com/media/files/yolov3-spp.weights' || rm -fv "$COCO_SPP_WEIGHTS"
+  [ -s "$COCO_SPP_WEIGHTS" ] || { echo "Cannot get COCO_SPP_WEIGHTS."; exit; }
+  echo -n "$COCO_SPP_WEIGHTS"
+}
+
+search_last_backup () {
+  local WEIGHTS_PREFIX x i rc
+  WEIGHTS_PREFIX="$1"
+  [ -r "$WEIGHTS_PREFIX"_final.weights ] && { echo -n "$WEIGHTS_PREFIX"_final.weights; return; }
+  [ -r "$WEIGHTS_PREFIX.backup"        ] && { echo -n "$WEIGHTS_PREFIX.backup";        return; }
+  x=0
+  rc=''
+  for f in "$WEIGHTS_PREFIX"_*.weights; do
+    [ -s "$f" ] || continue
+    i=$(echo -n "$f" | sed -n -E -e 's/^.*_0*([0-9]+).weights$/\1/p')
+    [ -n "$i" ] && [ "$i" -gt "$x" ] && rc="$f"
+  done
+  [ -n "$rc" ] && echo -n "$rc"
+}
+
+search_pretrained_weights () {
+  local CFG WEIGHTS_PREFIX rc
+  CFG="$1"
+  shift
+  WEIGHTS_PREFIX="$1"
+  shift
+  rc=$(search_last_backup "$WEIGHTS_PREFIX")
+  [ -n "$rc" ] && { echo -n "$rc"; return; }
+  for f in "$@"; do
+    if [ -r "$f" ]; then
+	dark_partial "$CFG" "$f" "$f.77" 77
+	echo -n "$f.77"
+	return
+    fi
+  done
+  dark_weights
+}
+
+search_pretrained_spp_weights () {
+  local CFG WEIGHTS_PREFIX rc
+  CFG="$1"
+  shift
+  WEIGHTS_PREFIX="$1"
+  shift
+  rc=$(search_last_backup "$WEIGHTS_PREFIX")
+  [ -n "$rc" ] && { echo -n "$rc"; return; }
+  for f in "$@"; do
+    if [ -r "$f" ]; then
+	dark_partial "$CFG" "$f" "$f.87" 87
+	echo -n "$f.87"
+	return
+    fi
+  done
+  dark_spp_weights
+}
+
+make_partial () {
+  local WEIGHTS_PREFIX
+  WEIGHTS_PREFIX="$1"
+  [ -r "$WEIGHTS_PREFIX"_final.weights ] && dark_partial "$WEIGHTS_PREFIX"_final.weights "$WEIGHTS_PREFIX"_final.weights.77 77
+  [ -r "$WEIGHTS_PREFIX".backup        ] && dark_partial "$WEIGHTS_PREFIX".backup        "$WEIGHTS_PREFIX".backup.77 77
+}
+
+make_spp_partial () {
+  local WEIGHTS_PREFIX
+  WEIGHTS_PREFIX="$1"
+  [ -r "$WEIGHTS_PREFIX"_final.weights ] && dark_partial "$WEIGHTS_PREFIX"_final.weights "$WEIGHTS_PREFIX"_final.weights.87 87
+  [ -r "$WEIGHTS_PREFIX".backup        ] && dark_partial "$WEIGHTS_PREFIX".backup        "$WEIGHTS_PREFIX".backup.87 87
+}
+
+# end of file
