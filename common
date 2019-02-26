@@ -29,6 +29,7 @@ mktempf () {
 }
 
 darknet () {
+  local PREFIX
   [ '_nohup' = "$1" ] && { shift; PREFIX="$PREFIX nohup"; }
   [ '_time'  = "$1" ] && { shift; PREFIX="$PREFIX time";  }
   if [ -z "$GPUS" ]; then
@@ -39,6 +40,7 @@ darknet () {
 }
 
 darknet_alexab () {
+  local PREFIX
   [ '_nohup' = "$1" ] && { shift; PREFIX="$PREFIX nohup"; }
   [ '_time'  = "$1" ] && { shift; PREFIX="$PREFIX time";  }
   if [ -z "$GPUS" ]; then

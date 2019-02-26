@@ -68,17 +68,17 @@ def main():
         ax4.grid(True)
         ax5.grid(True)
         df                     .plot(ax=ax1)
-        if 2000 < len(df.index):
+        if 2000 < it_last:
             df.iloc[     :  500, :].plot(ax=ax2)
             df.iloc[  500: 2000, :].plot(ax=ax3)
             df.iloc[ 2000:     , :].plot(ax=ax4)
             df.iloc[-2000:     , :].plot(ax=ax5)
         else:
-            w = df.index / 3
-            df.iloc[         :int(w):  , :].plot(ax=ax2)
-            df.iloc[         :int(2*w):, :].plot(ax=ax3)
-            df.iloc[   int(w):int(2*w):, :].plot(ax=ax4)
-            df.iloc[ int(2*w):         , :].plot(ax=ax5)
+            w = it_last / 3
+            df.iloc[         :int(w)  , :].plot(ax=ax2)
+            df.iloc[         :int(2*w), :].plot(ax=ax3)
+            df.iloc[   int(w):int(2*w), :].plot(ax=ax4)
+            df.iloc[ int(2*w):        , :].plot(ax=ax5)
         fig.tight_layout()
         fig.savefig(output_file_loss_png)
     finally:

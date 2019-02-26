@@ -9,7 +9,11 @@ PATH='/bin:/usr/bin'
 . ./config
 
 mkdir -p "$BACKUP_DIR" "$RESULTS_DIR"
-[ -r anchors.txt ] || dark_anchors "$DATA" "$CFG"
+if [ -r anchors.txt ] && [ "$CFG" -nt anchors.txt ]; then
+  :
+else
+  dark_anchors "$DATA" "$CFG"
+fi
 
 { darknet _nohup _time detector train "$DATA" "$CFG" "$PRETRAINED" >>"$BACKUP_DIR"/train.out 2>>"$BACKUP_DIR"/train.err; make_partial; } &
 echo "$!" >backup/train.pid

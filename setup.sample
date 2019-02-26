@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Copyright (c) 2018,2019 Abacus Technologies, Inc.
+# Copyright (c) 2018,2019 Fumiyuki Shimizu
+# MIT License: https://opensource.org/licenses/mit-license.php
+
+PATH='/bin:/usr/bin'
+
+FOLDER=$(dirname "$PWD")
+FOLDER=$(basename "$FOLDER")
+PROJECT=$(basename "$PWD")
+
+STORAGE='../../../darkutil'
+for f in common dn evl.py predict; do
+  rm -f "$f"
+  ln -s "$STORAGE/$f" "$f"
+done
+ln -sf "$STORAGE/config.sample" config
+#[ -e config ] && cp -p "$STORAGE/config.sample" config
+
+STORAGE='/data/huge/ILSVRC/yolo'
+for d in images labels; do
+  rm -f "$d"
+  ln -s "$STORAGE/$d" "$d"
+done
+
+STORAGE="/data/work/$FOLDER/$PROJECT"
+for d in backup results; do
+  mkdir -p "$STORAGE/$d"
+  [ -e "$d" ] || ln -s "$STORAGE/$d" "$d"
+done
+
+# end of file
