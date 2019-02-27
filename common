@@ -28,26 +28,24 @@ mktempf () {
   echo -n "$f"
 }
 
+darknet_bg () {
+  local PIDFILE GPUFLAGS
+  PIDFILE="$1"; shift
+  [ -n "$GPUS" ] && GPUFLAGS="-gpus $GPUS"
+  "$DARKNET" "$@" $GPUFLAGS &
+  echo -n "$!" >"$PIDFILE"
+}
+
 darknet () {
-  local PREFIX
-  [ '_nohup' = "$1" ] && { shift; PREFIX="$PREFIX nohup"; }
-  [ '_time'  = "$1" ] && { shift; PREFIX="$PREFIX time";  }
-  if [ -z "$GPUS" ]; then
-    $PREFIX "$DARKNET" "$@"
-  else
-    $PREFIX "$DARKNET" "$@" -gpus "$GPUS"
-  fi
+  local GPUFLAGS
+  [ -n "$GPUS" ] && GPUFLAGS="-gpus $GPUS"
+  "$DARKNET" "$@" $GPUFLAGS
 }
 
 darknet_alexab () {
-  local PREFIX
-  [ '_nohup' = "$1" ] && { shift; PREFIX="$PREFIX nohup"; }
-  [ '_time'  = "$1" ] && { shift; PREFIX="$PREFIX time";  }
-  if [ -z "$GPUS" ]; then
-    $PREFIX "$DARKNET_ALEXAB" "$@"
-  else
-    $PREFIX "$DARKNET_ALEXAB" "$@" -gpus "$GPUS"
-  fi
+  local GPUFLAGS
+  [ -n "$GPUS" ] && GPUFLAGS="-gpus $GPUS"
+  "$DARKNET_ALEXAB" "$@" $GPUFLAGS
 }
 
 dark_partial () {

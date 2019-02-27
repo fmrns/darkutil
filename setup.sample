@@ -11,12 +11,20 @@ FOLDER=$(basename "$FOLDER")
 PROJECT=$(basename "$PWD")
 
 STORAGE='../../../darkutil'
-for f in common dn evl.py predict; do
+#for f in common dn evl.py predict check_images setup.sample config.sample; do
+for f in common dn evl.py predict check_images; do
   rm -f "$f"
   ln -s "$STORAGE/$f" "$f"
 done
-ln -sf "$STORAGE/config.sample" config
-#[ -e config ] && cp -p "$STORAGE/config.sample" config
+for f in setup.sample config.sample; do
+  BN=$(basename $f .sample)
+  [ -e "$BN" ] && continue
+  if [ -e "$f" ]; then
+    cp -p  "$f" "$BN"
+  else
+    ln -sf "$STORAGE/$f" "$BN"
+  fi
+done
 
 STORAGE='/data/huge/ILSVRC/yolo'
 for d in images labels; do

@@ -9,15 +9,51 @@ PATH='/bin:/usr/bin'
 . ./config
 
 mkdir -p "$BACKUP_DIR" "$RESULTS_DIR"
+
+darkkill () {
+  pkill           --pidfile "$BACKUP_DIR"/train.pid
+  {
+    sleep 30
+    pgrep -a      --pidfile "$BACKUP_DIR"/train.pid &&
+      pkill -KILL --pidfile "$BACKUP_DIR"/train.pid
+    exit
+  } &
+  while pgrep -a  --pidfile "$BACKUP_DIR"/train.pid; do
+    sleep 5
+  done
+}
+
+if [ 'stop' = "$1" ]; then
+  if [ -r "$BACKUP_DIR"/train.pid ] && pgrep -a --pidfile "$BACKUP_DIR"/train.pid; then
+    darkkill
+    echo 'stopped.'
+    echo -n 'stop :' >>"$BACKUP_DIR"/train.time
+    date             >>"$BACKUP_DIR"/train.time
+    make_partial
+  fi
+  pgrep -ax darknet && echo 'Other darknet is running.'
+  rc=0
+  exit
+fi
+if [ -r "$BACKUP_DIR"/train.pid ] && pgrep -a --pidfile "$BACKUP_DIR"/train.pid; then
+  echo 'Already running.'
+  exit
+fi
+if pgrep -ax darknet; then
+  echo 'Other darknet is running.'
+  exit
+fi
+
 if [ -r anchors.txt ] && [ "$CFG" -nt anchors.txt ]; then
   :
 else
   dark_anchors "$DATA" "$CFG"
 fi
 
-{ darknet _nohup _time detector train "$DATA" "$CFG" "$PRETRAINED" >>"$BACKUP_DIR"/train.out 2>>"$BACKUP_DIR"/train.err; make_partial; } &
-echo "$!" >backup/train.pid
-echo darknet           detector train "$DATA" "$CFG" "$PRETRAINED" ">>$BACKUP_DIR/train.out 2>>$BACKUP_DIR/train.err"
+echo -n 'start:' >>"$BACKUP_DIR"/train.time
+date             >>"$BACKUP_DIR"/train.time
+darknet_bg "$BACKUP_DIR"/train.pid detector train "$DATA" "$CFG" "$PRETRAINED" >>"$BACKUP_DIR"/train.out 2>>"$BACKUP_DIR"/train.err
+echo darknet                       detector train "$DATA" "$CFG" "$PRETRAINED" ">>$BACKUP_DIR/train.out 2>>$BACKUP_DIR/train.err"
 
 rc=0
 
