@@ -26,6 +26,7 @@ nosuffix () {
 }
 
 TMP1=$(mktempf)
+TMP2=$(mktempf)
 
 echo "Searching files without extention on $1..."
 find -L "$1" -type f -print | nosuffix >"$TMP1"
@@ -44,7 +45,12 @@ echo "Searching collision of basenames on $1..."
 find -L "$1" -type f -print | basenames | sort | uniq -d >"$TMP1"
 [ -s "$TMP1" ] && { echo '***'; cat "$TMP1"; echo '*** Collision of basenames found. darknet cannot handle them.'; exit; }
 
-rm -f "$TMP1"
+echo "Searching images and labels matching on $1 and $2..."
+find -L "$1" -type f               -print | sed -E -e 's/images//' -e 's@\.[^./]+$@@' | sort >"$TMP1"
+find -L "$2" -type f -name '*.txt' -print | sed -E -e 's/labels//' -e 's@\.txt$@@'    | sort >"$TMP2"
+diff -auw "$TMP1" "$TMP2" || echo '***** mismatched images and labels found.'
+
+rm -f "$TMP1" "$TMP2"
 rc=0
 
 # end of file

@@ -107,8 +107,8 @@ search_last_backup () {
   rc=''
   for f in "$WEIGHTS_PREFIX"_*.weights; do
     [ -s "$f" ] || continue
-    i=$(echo -n "$f" | sed -n -E -e 's/^.*_0*([0-9]+).weights$/\1/p')
-    [ -n "$i" ] && [ "$i" -gt "$x" ] && rc="$f"
+    i=$(echo -n "$f" | sed -n -E -e 's/^.*_([0-9]+).weights$/\1/p')
+    [ -n "$i" ] && [ "$i" -gt "$x" ] && { x="$i"; rc="$f"; }
   done
   [ -n "$rc" ] && echo -n "$rc"
 }
