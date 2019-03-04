@@ -10,28 +10,13 @@ PATH='/bin:/usr/bin'
 
 mkdir -p "$BACKUP_DIR" "$RESULTS_DIR"
 
-darkkill () {
-  pkill           --pidfile "$BACKUP_DIR"/train.pid
-  {
-    sleep 30
-    pgrep -a      --pidfile "$BACKUP_DIR"/train.pid &&
-      pkill -KILL --pidfile "$BACKUP_DIR"/train.pid
-    exit
-  } &
-  while pgrep -a  --pidfile "$BACKUP_DIR"/train.pid; do
-    sleep 5
-  done
-}
-
+PIDFILE="$BACKUP_DIR"/train.pid
 if [ 'stop' = "$1" ]; then
-  if [ -r "$BACKUP_DIR"/train.pid ] && pgrep -a --pidfile "$BACKUP_DIR"/train.pid; then
-    darkkill
-    echo 'stopped.'
-    echo -n 'stop :' >>"$BACKUP_DIR"/train.time
-    date             >>"$BACKUP_DIR"/train.time
-    make_partial
-  fi
-  pgrep -ax darknet && echo 'Other darknet is running.'
+  darkkill "$PIDFILE"
+  echo 'stopped.'
+  echo -n 'stop :' >>"$BACKUP_DIR"/train.time
+  date             >>"$BACKUP_DIR"/train.time
+  make_partial
   rc=0
   exit
 fi

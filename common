@@ -48,6 +48,23 @@ darknet_alexab () {
   "$DARKNET_ALEXAB" "$@" $GPUFLAGS
 }
 
+darkkill () {
+  local PIDFILE
+  PIDFILE="$1"
+  if [ -r "$BACKUP_DIR"/train.pid ] && pgrep -a --pidfile "$BACKUP_DIR"/train.pid; then
+    pkill           --pidfile "$PIDFILE"
+    {
+      sleep 30
+      pgrep -a      --pidfile "$PIDFILE" &&
+        pkill -KILL --pidfile "$PIDFILE"
+    } &
+    while pgrep -a  --pidfile "$PIDFILE"; do
+      sleep 5
+    done
+  fi
+  pgrep -ax darknet && echo 'Other darknet is running.'
+}
+
 dark_partial () {
   local CFG WEIGHTS OUTPUT MAX_REGION
   CFG="$1"
@@ -80,7 +97,21 @@ dark_anchors () {
 \2'"$ANCHORS/" "$CFG" >"$CFG".recommended
   sed -E -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$CFG"             >"$TMP1"
   sed -E -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$CFG".recommended >"$TMP2"
-  diff -auw "$TMP1" "$TMP2" || { echo '**********'; echo "Created $CFG.recommended. Exitting..."; echo '**********'; exit; }
+  if diff -auw "$TMP1" "$TMP2"; then
+      echo '**********'
+      echo "Created $CFG.recommended."
+      echo '**********'
+      echo -n "Apply $CFG.recommended to $CFG?(y/N):"
+      read -r yesno
+      yesno=$(echo -n "$yesno" | tr 'A-Z' 'a-z')
+      if [ 'yes' = "$yesno" -o 'y' = "$yesno" ]; then
+	mv -v "$CFG" "$CFG".$(date --iso-8601=seconds)
+	mv -v "$CFG.recommended" "$CFG"
+      else
+	echo 'Exitting...'
+	exit
+      fi
+  fi
   rm -f "$TMP1" "$TMP2"
 }
 
