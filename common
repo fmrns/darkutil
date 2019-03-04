@@ -90,14 +90,14 @@ dark_anchors () {
   TMP2=$(mktempf)
   sort "$TRAIN" >"$TMP1"
   sed -E -e 's@^[[:space:]]*(train[[:space:]]*=).*$@\1'"$TMP1"'@' "$DATA" >"$TMP2"
-  echo 'Press enter twice.'
+  echo 'Press enter after the distribution graph is displayed.'
   darknet_alexab detector calc_anchors "$TMP2" -num_of_clusters 9 -width "$WIDTH" -height "$HEIGHT" -show
   ANCHORS=$(cat anchors.txt)
   sed -E -e 's/^[[:space:]]*((anchors[[:space:]]*=).*)$/#\1\
 \2'"$ANCHORS/" "$CFG" >"$CFG".recommended
   sed -E -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$CFG"             >"$TMP1"
   sed -E -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$CFG".recommended >"$TMP2"
-  if diff -auw "$TMP1" "$TMP2"; then
+  if ! diff -auw "$TMP1" "$TMP2"; then
       echo '**********'
       echo "Created $CFG.recommended."
       echo '**********'
