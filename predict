@@ -23,11 +23,13 @@ gen_results () {
     IN_LIST="$IN"
   fi
 
-  sed -E -e '/^[[:space:]]*(valid|results)[[:space:]]*=/d' "$DATA" >"$TMP2"
+  sed -E -e '/^[[:space:]]*(train|valid|results)[[:space:]]*=/d' "$DATA" >"$TMP2"
   echo ''                 >>"$TMP2"
   echo "valid=$IN_LIST"   >>"$TMP2"
   echo "results=$OUT_DIR" >>"$TMP2"
 
+  echo '----------'
+  tail "$IN_LIST"
   echo '----------'
   cat "$TMP2"
   echo '----------'
@@ -37,7 +39,7 @@ gen_results () {
   rm -f "$TMP1" "$TMP2"
 }
 
-IN=${1:-'images'}
+IN=${1:-'images.test'}
 OUT=${2:-"$RESULTS_DIR"}
 gen_results "$IN" "$OUT"
 
