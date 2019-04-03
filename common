@@ -36,7 +36,7 @@ darknet_bg () {
   echo -n "$!" >"$PIDFILE"
 }
 
-darknet () {
+darknet_ () {
   local GPUFLAGS
   [ -n "$GPUS" ] && GPUFLAGS="-gpus $GPUS"
   "$DARKNET" "$@" $GPUFLAGS
@@ -48,7 +48,7 @@ darknet_alexab () {
   "$DARKNET_ALEXAB" "$@" $GPUFLAGS
 }
 
-darkkill () {
+dark_kill () {
   local PIDFILE
   PIDFILE="$1"
   if [ -r "$BACKUP_DIR"/train.pid ] && pgrep -a --pidfile "$BACKUP_DIR"/train.pid; then
@@ -74,7 +74,7 @@ dark_partial () {
   if [ -s "$OUTPUT" ] && [ "$OUTPUT" -nt "$WEIGHTS" ]; then
     :
   else
-    darknet partial "$CFG" "$WEIGHTS" "$OUTPUT" "$MAX_REGION"
+    darknet_ partial "$CFG" "$WEIGHTS" "$OUTPUT" "$MAX_REGION"
   fi
   [ -s "$OUTPUT" ] || { echo "Cannot create $OUTPUT."; exit; }
 }

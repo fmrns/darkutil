@@ -38,7 +38,7 @@ fi
 echo -n 'start:' >>"$BACKUP_DIR"/train.time
 date             >>"$BACKUP_DIR"/train.time
 darknet_bg "$BACKUP_DIR"/train.pid detector train "$DATA" "$CFG" "$PRETRAINED" >>"$BACKUP_DIR"/train.out 2>>"$BACKUP_DIR"/train.err
-echo darknet                       detector train "$DATA" "$CFG" "$PRETRAINED" ">>$BACKUP_DIR/train.out 2>>$BACKUP_DIR/train.err"
+echo '----- start:'        darknet detector train "$DATA" "$CFG" "$PRETRAINED" ">>$BACKUP_DIR/train.out 2>>$BACKUP_DIR/train.err"
 
 rc=0
 
