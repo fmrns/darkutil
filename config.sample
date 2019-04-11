@@ -8,8 +8,10 @@
 
 GPUS='0'
 NAME='yolov3-spp-ilsvrc'
-CFG="cfg/$NAME.cfg"
 DATA='cfg/ilsvrc.data'
+CFG="cfg/$NAME.cfg"
+#TEST='images.test'
+TEST='/data/huge/ILSVRC/yolo/lists/test.txt'
 BACKUP_DIR=$(sed -n -E -e 's/^[[:space:]]*backup[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*$/\1/p' "$CFG" | tail -n 1)
 : ${BACKUP_DIR:='backup'}
 RESULTS_DIR=$(sed -n -E -e 's/^[[:space:]]*results[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*$/\1/p' "$CFG" | tail -n 1)

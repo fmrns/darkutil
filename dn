@@ -12,7 +12,7 @@ mkdir -p "$BACKUP_DIR" "$RESULTS_DIR"
 
 PIDFILE="$BACKUP_DIR"/train.pid
 if [ 'stop' = "$1" ]; then
-  darkkill "$PIDFILE"
+  dark_kill "$PIDFILE"
   echo 'stopped.'
   echo -n 'stop :' >>"$BACKUP_DIR"/train.time
   date             >>"$BACKUP_DIR"/train.time

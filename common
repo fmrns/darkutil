@@ -42,6 +42,12 @@ darknet_ () {
   "$DARKNET" "$@" $GPUFLAGS
 }
 
+darknet_debug () {
+  local GPUFLAGS
+  [ -n "$GPUS" ] && GPUFLAGS="-gpus $GPUS"
+  strace -t -e trace=%file "$DARKNET" "$@" $GPUFLAGS
+}
+
 darknet_alexab () {
   local GPUFLAGS
   [ -n "$GPUS" ] && GPUFLAGS="-gpus $GPUS"

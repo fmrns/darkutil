@@ -9,7 +9,7 @@
 . ./config
 
 gen_results () {
-  local IN IN_LIST OUT_DIR TMP1 TMP2
+  local IN IN_LIST OUT_DIR NAME_LIST TMP1 TMP2 TMP3 dum
   IN="$1"
   OUT_DIR="$2"
 
@@ -17,31 +17,63 @@ gen_results () {
   TMP2=$(mktempf)
 
   if [ -d "$IN" ]; then
-    find -L "$IN" -maxdepth 1 -type f | sort >"$TMP1"
+    find -L "$IN" -type f | sort >"$TMP1"
     IN_LIST="$TMP1"
   else
     IN_LIST="$IN"
   fi
 
-  sed -E -e '/^[[:space:]]*(train|valid|results)[[:space:]]*=/d' "$DATA" >"$TMP2"
+  names=$(sed   -n -E -e 's/[[:space:]]+$//' -e 's/^[[:space:]]*names[[:space:]]*=[[:space:]]*([^[:space:]].*)$/\1/p'   "$DATA" | head -n 1)
+  classes=$(sed -n -E -e 's/[[:space:]]+$//' -e 's/^[[:space:]]*classes[[:space:]]*=[[:space:]]*([^[:space:]].*)$/\1/p' "$DATA" | head -n 1)
+  len=$(echo -n "$classes" | wc -m)
+  n=0
+  while read -r label dum; do
+    printf '%0'"$len"'d_%s\n' $n $label
+    n=$(( $n + 1 ))
+  done <"$names" >names.txt
+  if [ $n -ne $classes ]; then
+    echo '***********************************************************************'
+    echo "***** Error: # of label classes mismatch: $n <> $classes"
+    echo '***********************************************************************'
+    exit
+  fi
+  if [ $(ulimit -n) -lt $(( $classes + 1024 )) ]; then
+    echo '***********************************************************************'
+    echo "***** limits too low: $(ulimit -n) < $classes + 1024"
+    echo "***** darknet opens $OUT_DIR/comp4_det_test_NAME.txt files simultaneously."
+    echo '***********************************************************************'
+    exit
+  fi
+
+  sed -E -e '/^[[:space:]]*(train|valid|test|results|backup|names)[[:space:]]*=/d' "$DATA" >"$TMP2"
   echo ''                 >>"$TMP2"
   echo "valid=$IN_LIST"   >>"$TMP2"
   echo "results=$OUT_DIR" >>"$TMP2"
+  echo "names=names.txt"  >>"$TMP2"
 
   echo '----------'
-  tail "$IN_LIST"
+  head -n 3 "$IN_LIST"
+  echo ...
+  tail -n 3 "$IN_LIST"
+  echo '----------'
+  head -n 3 names.txt
+  echo ...
+  tail -n 3 names.txt
   echo '----------'
   cat "$TMP2"
   echo '----------'
-  echo 'Validating '$(wc -l <"$TMP1")'files...'
-  echo darknet detector valid "$TMP2" "$CFG" "$PRETRAINED 2>$OUT_DIR/val.err"
-       darknet detector valid "$TMP2" "$CFG" "$PRETRAINED" 2>"$OUT_DIR/val.err" | tr '\n' ','
+  read -p 'Press enter.' -r dum
+  echo 'Validating '$(wc -l <"$IN_LIST")'files...'
+  echo darknet detector valid "$TMP2" "$CFG" "$PRETRAINED"
+      darknet_ detector valid "$TMP2" "$CFG" "$PRETRAINED" | tr '\n' ','
+  echo darknet detector valid "$TMP2" "$CFG" "$PRETRAINED"
   rm -f "$TMP1" "$TMP2"
 }
 
-IN=${1:-'images.test'}
+IN=${1:-"$TEST"}
 OUT=${2:-"$RESULTS_DIR"}
 gen_results "$IN" "$OUT"
+echo 'You can convert the results/ to YOLO labels by darkconv/yolo2yolo.py'
 
 rc=0
 
