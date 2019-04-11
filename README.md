@@ -15,3 +15,6 @@ evl.py:
 
 dn:
   start and stop darknet, calc anchors.
+
+predict:
+  predict/detect images.
