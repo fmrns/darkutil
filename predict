@@ -73,7 +73,7 @@ gen_results () {
 IN=${1:-"$TEST"}
 OUT=${2:-"$RESULTS_DIR"}
 gen_results "$IN" "$OUT"
-echo 'You can convert the results/ to YOLO labels by darkconv/yolo2yolo.py'
+echo 'You can convert the results/ to YOLO labels by darkconv/yoloresults2yolo.py'
 
 rc=0
 
