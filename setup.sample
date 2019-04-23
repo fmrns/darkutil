@@ -33,7 +33,7 @@ for d in images labels; do
 done
 
 STORAGE="/data/work/$FOLDER/$PROJECT"
-for d in backup results; do
+for d in backup results summary; do
   mkdir -p "$STORAGE/$d"
   [ -e "$d" ] || ln -s "$STORAGE/$d" "$d"
 done

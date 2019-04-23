@@ -136,17 +136,38 @@ dark_spp_weights () {
 }
 
 search_last_backup () {
-  local WEIGHTS_PREFIX x i rc
+  local WEIGHTS_PREFIX f x i mx rc
   WEIGHTS_PREFIX="$1"
-  [ -r "$WEIGHTS_PREFIX"_final.weights ] && { echo -n "$WEIGHTS_PREFIX"_final.weights; return; }
-  [ -r "$WEIGHTS_PREFIX.backup"        ] && { echo -n "$WEIGHTS_PREFIX.backup";        return; }
-  x=0
   rc=''
+  [ -r "$WEIGHTS_PREFIX"_final.weights ] && rc="$WEIGHTS_PREFIX"_final.weights
+  f="$WEIGHTS_PREFIX.backup"
+  if [ -r "$f" ]; then
+    if [ -z "$rc" ]; then
+      rc="$f"
+    elif [ "$f" -nt "$rc" ]; then
+      echo "Warning: $f is newer than $rc" 1>&2
+      rc="$f"
+    fi
+  fi
+  x=0
+  mx=''
   for f in "$WEIGHTS_PREFIX"_*.weights; do
-    [ -s "$f" ] || continue
+    if [ ! -s "$f" ]; then
+      echo "Warning: size 0: $f" 1>&2
+      continue
+    fi
     i=$(echo -n "$f" | sed -n -E -e 's/^.*_([0-9]+).weights$/\1/p')
-    [ -n "$i" ] && [ "$i" -gt "$x" ] && { x="$i"; rc="$f"; }
+    [ -n "$i" ] && [ "$i" -gt "$x" ] && { x="$i"; mx="$f"; }
   done
+  f="$mx"
+  if [ -r "$f" ]; then
+    if [ -z "$rc" ]; then
+      rc="$f"
+    elif [ "$f" -nt "$rc" ]; then
+      echo "Warning: $f is newer than $rc" 1>&2
+      rc="$f"
+    fi
+  fi
   [ -n "$rc" ] && echo -n "$rc"
 }
 
